@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spiky Card Generator</title>
-  <meta name="description" content="Minimal Spiky card generator: Twitter PFP + random trait, share to Twitter." />
+  <meta name="description" content="Minimal Spiky card generator: X (Twitter) PFP + random trait, share to X." />
   <link rel="icon" href="data:," />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -28,16 +28,16 @@
       </div>
 
       <div>
-        <label class="text-xs uppercase tracking-wide opacity-70">Twitter handle</label>
+        <label class="text-xs uppercase tracking-wide opacity-70">X handle</label>
         <input id="handleInput" type="text" placeholder="@yourhandle"
                class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 outline-none focus:ring-2 focus:ring-purple-500" />
       </div>
 
       <button id="generateBtn"
               class="w-full rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-3 font-medium hover:opacity-90">
-        Generate
+        Connect X & Generate
       </button>
-      <p id="errorBox" class="text-[11px] text-red-300"></p>
+      <p id="errorBox" class="text-[12px] text-red-300 min-h-[1.25rem]"></p>
     </section>
 
     <!-- STEP 2 -->
@@ -73,18 +73,21 @@
 
       <button id="shareBtn"
               class="mt-5 w-full rounded-xl bg-white text-black font-medium px-4 py-3 hover:opacity-90">
-        Share card to Twitter
+        Share card to X
       </button>
       <p class="mt-2 text-[11px] opacity-60 text-center">
-        If your device can’t attach images via Share, the card downloads and a tweet opens with preset text.
+        If Share can’t attach the image, we’ll try the X app. If not installed, we open X on the web.
       </p>
+      <p id="shareError" class="text-[12px] text-red-300 min-h-[1.25rem] text-center"></p>
     </section>
   </main>
 
+  <!-- html-to-image -->
   <script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
 
+    // Traits
     const TRAITS = [
       { name: "Pixel Hater", description: "Refuses to admit pixel art is the highest artform, secretly collects anyway." },
       { name: "One-Pixel Maxi", description: "Believes all good art comes from a single square." },
@@ -99,16 +102,29 @@
     const PRESET_TWEET = "I just generated my Spiky Card. Let’s build on Monad.";
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    // Build an avatar URL without using fetch() — avoids CORS issues entirely.
-    function buildAvatarURL(handle) {
+    // Avatar URL builders (no fetch; rely on <img> + onerror chain)
+    function buildAvatarURL(handle, provider) {
       const user = handle.replace(/^@/, "").trim();
-      // Primary attempt (twitter path). If that 404s, onerror handler will swap to fallback.
-      return `https://unavatar.io/twitter/${encodeURIComponent(user)}?cb=${Date.now()}`;
+      const base = provider
+        ? `https://unavatar.io/${provider}/${encodeURIComponent(user)}`
+        : `https://unavatar.io/${encodeURIComponent(user)}`;
+      return `${base}?cb=${Date.now()}`;
     }
-    function fallbackAvatarURL(handle) {
-      const user = handle.replace(/^@/, "").trim();
-      // Bare path as fallback
-      return `https://unavatar.io/${encodeURIComponent(user)}?cb=${Date.now()}`;
+    function dicebearFallback(nameOrHandle) {
+      const seed = encodeURIComponent((nameOrHandle || "anon").toLowerCase());
+      return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundType=gradientLinear&radius=50&chars=2`;
+    }
+    function setAvatarWithFallbacks(handle, name) {
+      const img = $("avatarImg");
+      const order = [
+        buildAvatarURL(handle, "x"),        // X first
+        buildAvatarURL(handle, "twitter"),  // then twitter
+        buildAvatarURL(handle, ""),         // bare
+        dicebearFallback(name || handle || "anon"), // guaranteed
+      ];
+      let i = 0;
+      img.onerror = () => { i++; if (i < order.length) img.src = order[i]; };
+      img.src = order[0];
     }
 
     function generate() {
@@ -116,57 +132,69 @@
       const handle = $("handleInput").value.trim();
       const errorBox = $("errorBox");
       errorBox.textContent = "";
+      if (!handle) { errorBox.textContent = "Please enter your X handle."; return; }
 
-      if (!handle) {
-        errorBox.textContent = "Please enter your Twitter handle.";
-        return;
-      }
-
-      // Set name
       $("outName").textContent = name;
+      setAvatarWithFallbacks(handle, name);
 
-      // Set avatar with onerror fallback (no fetch)
-      const img = $("avatarImg");
-      img.onload = null; // clean previous
-      img.onerror = () => { img.onerror = null; img.src = fallbackAvatarURL(handle); };
-      img.src = buildAvatarURL(handle);
-
-      // Random trait
       const t = pick(TRAITS);
       $("traitName").textContent = t.name;
       $("traitDesc").textContent = t.description;
 
-      // Show step 2
       $("step1").classList.add("hidden");
       $("step2").classList.remove("hidden");
     }
 
-    async function shareToTwitter() {
+    async function shareToX() {
       const card = $("card");
+      const shareError = $("shareError");
+      shareError.textContent = "";
+
       try {
         const dataUrl = await htmlToImage.toPng(card, { cacheBust: true, pixelRatio: 2 });
-        const blob = await (await fetch(dataUrl)).blob();
-        const file = new File([blob], "spiky-card.png", { type: "image/png" });
 
-        const payload = { text: PRESET_TWEET, files: [file] };
-        if (navigator.canShare && navigator.canShare(payload)) {
-          await navigator.share(payload); // choose Twitter
+        // 1) Prefer system share (image + text)
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], "spiky-card.png", { type: "image/png" });
+          const payload = { text: PRESET_TWEET, files: [file] };
+          if (navigator.canShare && navigator.canShare(payload)) {
+            await navigator.share(payload); // choose X app in the sheet
+            return;
+          }
+        } catch {}
+
+        // 2) Try to open the X app with text (cannot attach image via deep link)
+        const deepLinks = [
+          `x://post?text=${encodeURIComponent(PRESET_TWEET)}`,
+          `twitter://post?message=${encodeURIComponent(PRESET_TWEET)}`,
+        ];
+        let triedApp = false;
+        for (const url of deepLinks) {
+          try {
+            triedApp = true;
+            // Try direct navigation (works on many mobiles); fallback to open()
+            window.location.href = url;
+            // give the OS ~1s to hand off to the app; then also open web intent as backup
+            setTimeout(() => {
+              window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`, "_blank");
+            }, 1200);
+            return;
+          } catch {}
+        }
+
+        // 3) Web fallback (may lose image, user can attach manually)
+        if (!triedApp) {
+          window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`, "_blank");
           return;
         }
-        // Fallback: download + open tweet intent
-        const a = document.createElement("a");
-        a.href = dataUrl; a.download = "spiky-card.png";
-        document.body.appendChild(a); a.click(); a.remove();
-        const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`;
-        window.open(intent, "_blank");
-      } catch {
-        const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`;
-        window.open(intent, "_blank");
+      } catch (e) {
+        shareError.textContent = "Couldn’t generate the image. Try again.";
       }
     }
 
     $("generateBtn").addEventListener("click", generate);
-    $("shareBtn").addEventListener("click", shareToTwitter);
+    $("shareBtn").addEventListener("click", shareToX);
   </script>
 </body>
 </html>
