@@ -4,126 +4,65 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spiky Card Generator</title>
-  <meta name="description" content="Generate a collectible-style Spiky card from your Twitter handle with traits & rarity." />
+  <meta name="description" content="Minimal Spiky card generator: connect Twitter, auto-generate a card with your PFP + a random trait, share to Twitter." />
   <link rel="icon" href="data:," />
-  <!-- Tailwind Play CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html, body { height: 100%; }
-    /* Loading animation (SpiKeys-inspired purple burst) */
-    .loading-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 50; }
-    .loading-overlay.active { display: flex; }
-    .pulse-bg { position: absolute; inset: -20%; background: radial-gradient( circle at 50% 50%, rgba(168,85,247,0.25), rgba(88,28,135,0.35) 40%, rgba(0,0,0,0.6) 65% ); filter: blur(20px); animation: swirl 2.2s ease-in-out infinite alternate; }
-    .burst { width: 96px; height: 96px; border-radius: 9999px; box-shadow: 0 0 0 0 rgba(255,255,255,0.35); animation: burst 1.8s ease-out 0.4s forwards; }
-    @keyframes swirl { 0% { transform: scale(1) rotate(0deg);} 100% { transform: scale(1.1) rotate(6deg);} }
-    @keyframes burst { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.25);} 70% { box-shadow: 0 0 0 28px rgba(255,255,255,0.05);} 100% { box-shadow: 0 0 0 120vmax rgba(255,255,255,0); opacity: 0; } }
-    /* Card frame accents */
     .inner-border { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.08), inset 0 0 40px rgba(255,255,255,0.06); }
-    .shine:before { content:""; position:absolute; inset:-1px; background: linear-gradient(120deg, rgba(255,255,255,0.02), rgba(255,255,255,0.07), rgba(255,255,255,0.02)); mix-blend-mode: overlay; pointer-events:none; border-radius: inherit; }
   </style>
 </head>
 <body class="min-h-screen w-full bg-gradient-to-b from-purple-900 via-purple-950 to-black text-white">
-  <!-- Loading Screen -->
-  <div id="loading" class="loading-overlay">
-    <div class="pulse-bg"></div>
-    <div class="relative grid place-items-center">
-      <div class="burst"></div>
-      <div class="relative text-center">
-        <div class="mx-auto mb-3 w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-400 opacity-90 blur-sm"></div>
-        <p class="text-sm opacity-80">Generating your Spiky Card…</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="max-w-xl mx-auto px-5 pt-8 pb-28">
-    <header class="flex items-center justify-between">
+  <main class="max-w-md mx-auto px-5 py-10">
+    <header class="text-center mb-8">
       <h1 class="text-2xl font-semibold tracking-tight">Spiky Card Generator</h1>
-      <span class="text-xs opacity-70">v2 (traits + rarity + loader)</span>
+      <p class="mt-2 text-sm opacity-80">Minimal • Mobile-first • Purple</p>
     </header>
-    <p class="mt-2 text-sm opacity-80">Mobile-first • Minimal • Premium purple</p>
 
-    <!-- Controls -->
-    <section class="mt-4 bg-white/5 backdrop-blur rounded-2xl p-4 border border-white/10 shadow-xl">
-      <div class="grid grid-cols-1 gap-4">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="col-span-2">
-            <label class="text-xs uppercase tracking-wide opacity-70">Display Name</label>
-            <input id="displayName" type="text" placeholder="e.g., Andalf" class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500" />
-          </div>
-          <div>
-            <label class="text-xs uppercase tracking-wide opacity-70">Handle</label>
-            <input id="handle" type="text" placeholder="@andalf" class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500" />
-            <div class="mt-2 grid grid-cols-2 gap-2">
-              <button id="btnFetch" class="rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-3 py-2 text-xs font-medium hover:opacity-90 disabled:opacity-50">Use X/Twitter Avatar</button>
-              <button id="btnGenerate" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium hover:bg-white/10">Generate</button>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label class="text-xs uppercase tracking-wide opacity-70">Profile Image URL (optional)</label>
-          <input id="avatarUrl" type="url" placeholder="Paste any image URL" class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500" />
-        </div>
-
-        <div>
-          <label class="text-xs uppercase tracking-wide opacity-70">Preset Tweet Text</label>
-          <input id="presetTweet" type="text" value="I just generated my Spiky Card. Let’s build on Monad." class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500" />
-        </div>
+    <!-- STEP 1: name + connect button only -->
+    <section id="step1" class="space-y-4">
+      <div>
+        <label class="text-xs uppercase tracking-wide opacity-70">Name</label>
+        <input id="nameInput" type="text" placeholder="e.g., Andalf" class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 outline-none focus:ring-2 focus:ring-purple-500" />
       </div>
+      <button id="connectBtn" class="w-full rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-3 font-medium hover:opacity-90">
+        Connect Twitter
+      </button>
+      <p class="text-[11px] opacity-60 text-center">We only fetch your avatar via public handle. No login required.</p>
     </section>
 
-    <!-- Preview Card -->
-    <section class="mt-6">
-      <label class="text-xs uppercase tracking-wide opacity-70">Preview</label>
-      <div id="card" class="relative mt-2 rounded-[28px] p-5 bg-gradient-to-br from-purple-700 via-purple-800 to-fuchsia-700 border border-white/10 shadow-2xl overflow-hidden inner-border shine" style="aspect-ratio: 1.91 / 1;">
-        <!-- Variant glow accents -->
-        <div id="variantGlow" class="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
-        <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
-
-        <!-- Corner badge (rarity) -->
-        <div id="cornerBadge" class="absolute top-3 right-3 text-[10px] tracking-widest px-2 py-1 rounded-full bg-black/30 border border-white/10 backdrop-blur-sm">GENESIS</div>
-
-        <!-- Header: PFP + name/handle -->
+    <!-- STEP 2: generated card + share button -->
+    <section id="step2" class="hidden">
+      <div id="card" class="relative mt-6 rounded-[24px] p-5 bg-gradient-to-br from-purple-700 via-purple-800 to-fuchsia-700 border border-white/10 shadow-2xl overflow-hidden inner-border" style="aspect-ratio: 1.91/1;">
+        <div class="absolute inset-0 pointer-events-none">
+          <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/10 blur-3xl"></div>
+          <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/30 to-transparent"></div>
+        </div>
         <div class="relative flex items-center gap-4">
-          <div class="w-16 h-16 rounded-2xl bg-black/30 overflow-hidden border border-white/20" id="avatarBox">
-            <div class="w-full h-full grid place-items-center text-xs opacity-70">No Avatar</div>
-          </div>
-          <div class="flex flex-col min-w-0">
-            <span id="outName" class="text-lg font-semibold leading-tight truncate">Anon Spiky</span>
-            <span id="outHandle" class="text-sm opacity-80 truncate">@yourhandle</span>
+          <div id="pfpBox" class="w-16 h-16 rounded-2xl bg-black/30 overflow-hidden border border-white/20"></div>
+          <div class="min-w-0">
+            <div id="outName" class="text-lg font-semibold leading-tight truncate">Anon Spiky</div>
           </div>
         </div>
-
-        <!-- Trait -->
         <div class="mt-4 pr-2">
-          <div id="traitName" class="text-xl sm:text-2xl font-semibold leading-snug drop-shadow-sm">Trait Name</div>
-          <div id="traitDesc" class="text-sm sm:text-base opacity-90 mt-1">Trait description will appear here.</div>
+          <div id="traitName" class="text-xl font-semibold leading-snug">Trait</div>
+          <div id="traitDesc" class="text-sm opacity-90 mt-1">Description</div>
         </div>
-
-        <!-- Footer -->
-        <div class="absolute bottom-4 left-5 right-5 flex items-center justify-between text-xs opacity-80">
+        <div class="absolute bottom-3 left-5 right-5 flex items-center justify-between text-[11px] opacity-75">
           <span>spiky.cards</span>
-          <span id="variantName">GENESIS</span>
+          <span>monad vibes</span>
         </div>
       </div>
 
-      <div class="mt-4 grid grid-cols-2 gap-3">
-        <button id="btnDownload" class="rounded-2xl bg-white text-black font-medium px-4 py-3 hover:opacity-90">Download PNG</button>
-        <button id="btnShare" class="rounded-2xl bg-black/30 border border-white/10 px-4 py-3 hover:bg-black/40">Share (Web Share)</button>
-        <button id="btnTweet" class="col-span-2 rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-3 font-medium hover:opacity-90">Share on Twitter (text)</button>
-      </div>
-      <p class="mt-3 text-xs opacity-70">Tip: Twitter’s web intent can’t auto-attach images. Use <em>Share (Web Share)</em> on mobile to share the generated PNG with your preset text, or download and attach.</p>
+      <button id="shareBtn" class="mt-5 w-full rounded-xl bg-white text-black font-medium px-4 py-3 hover:opacity-90">Share card to Twitter</button>
+      <p class="mt-2 text-[11px] opacity-60 text-center">If sharing doesn’t attach the image, your device may not support Web Share with files. In that case, the card will download and a tweet will open with preset text.</p>
     </section>
+  </main>
 
-    <footer class="pt-10 text-center text-xs opacity-60">© <span id="year"></span> Spiky. Crafted with love.</footer>
-  </div>
-
-  <!-- html-to-image CDN -->
   <script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
 
-    // --- Trait Pool (from your spec) ---
     const TRAITS = [
       { name: "Pixel Hater", description: "Refuses to admit pixel art is the highest artform, secretly collects anyway." },
       { name: "One-Pixel Maxi", description: "Believes all good art comes from a single square." },
@@ -136,152 +75,75 @@
       { name: "Monad Maxi", description: "Monad is religion. Preacher of finality." },
     ];
 
-    // --- Rarity / Variant Skins ---
-    const VARIANTS = [
-      {
-        key: 'GENESIS',
-        cardBg: 'from-purple-700 via-purple-800 to-fuchsia-700',
-        glow: 'bg-fuchsia-300/20',
-      },
-      {
-        key: 'MYTHIC',
-        cardBg: 'from-fuchsia-700 via-purple-800 to-black',
-        glow: 'bg-purple-300/20',
-      },
-      {
-        key: 'L1',
-        cardBg: 'from-purple-900 via-purple-700 to-fuchsia-800',
-        glow: 'bg-white/10',
-      },
-    ];
+    const PRESET_TWEET = "I just generated my Spiky Card. Let’s build on Monad.";
 
-    const state = { avatarUrl: '' };
+    function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
-    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    async function connectAndGenerate(){
+      const name = $("nameInput").value.trim() || "Anon Spiky";
+      // Ask for handle (keeps UI minimal)
+      const handle = prompt("Enter your Twitter handle (with or without @):", "@andalf");
+      if(!handle) return;
+      const clean = handle.replace(/^@/, "");
+      const avatar = `https://unavatar.io/twitter/${clean}`;
 
-    function updateBasics() {
-      $("outName").textContent = $("displayName").value || "Anon Spiky";
-      $("outHandle").textContent = $("handle").value || "@yourhandle";
-    }
-
-    async function setAvatar(url) {
-      state.avatarUrl = url;
-      const box = $("avatarBox");
-      box.innerHTML = "";
-      const img = document.createElement("img");
-      img.src = url;
-      img.alt = "avatar";
-      img.className = "w-full h-full object-cover";
-      box.appendChild(img);
-    }
-
-    async function fetchAvatar() {
-      const handle = $("handle").value.replace(/^@/, "");
-      if (!handle) return alert("Enter a handle first.");
-      const url = `https://unavatar.io/twitter/${handle}`;
+      // prefetch to ensure it exists
       try {
-        const res = await fetch(url, { mode: "cors" });
-        if (!res.ok) throw new Error("avatar not found");
-        await setAvatar(url);
-        $("avatarUrl").value = url;
+        const res = await fetch(avatar, { mode: 'cors' });
+        if(!res.ok) throw new Error('no avatar');
       } catch (e) {
-        alert("Couldn't fetch avatar. Paste an image URL instead.");
+        alert("Couldn't fetch avatar from Twitter. Try again with a different handle.");
+        return;
       }
+
+      // Render card
+      $("outName").textContent = name;
+      const pfpBox = $("pfpBox");
+      pfpBox.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = avatar; img.alt = 'avatar'; img.className = 'w-full h-full object-cover';
+      pfpBox.appendChild(img);
+
+      const t = pick(TRAITS);
+      $("traitName").textContent = t.name;
+      $("traitDesc").textContent = t.description;
+
+      // Step switch
+      $("step1").classList.add('hidden');
+      $("step2").classList.remove('hidden');
+
+      // keep for share
+      window.__spiky = { name, handle: clean, avatar };
     }
 
-    function applyVariant(variant) {
+    async function shareToTwitter(){
       const card = $("card");
-      const badge = $("cornerBadge");
-      const glow = $("variantGlow");
-      const vName = $("variantName");
-
-      // reset bg classes starting with from-/via-/to-
-      card.className = card.className.replace(/from-[^\s]+|via-[^\s]+|to-[^\s]+/g, '').trim();
-      card.classList.add('relative','mt-2','rounded-[28px]','p-5','bg-gradient-to-br','border','border-white/10','shadow-2xl','overflow-hidden','inner-border','shine');
-      variant.cardBg.split(' ').forEach(c => card.classList.add(c));
-
-      glow.className = `absolute -top-20 -right-20 w-72 h-72 rounded-full ${variant.glow} blur-3xl pointer-events-none`;
-      badge.textContent = variant.key;
-      vName.textContent = variant.key;
-    }
-
-    async function showLoading(ms=2200) {
-      const overlay = $("loading");
-      overlay.classList.add('active');
-      return new Promise(res => setTimeout(() => { overlay.classList.remove('active'); res(); }, ms));
-    }
-
-    async function generateCard() {
-      // Ensure basics shown
-      updateBasics();
-      // Fake loading screen
-      await showLoading(2200);
-      // Apply random trait + variant
-      const trait = pick(TRAITS);
-      const variant = pick(VARIANTS);
-      $("traitName").textContent = trait.name;
-      $("traitDesc").textContent = trait.description;
-      applyVariant(variant);
-    }
-
-    async function downloadCard() {
-      const node = $("card");
       try {
-        const dataUrl = await htmlToImage.toPng(node, { cacheBust: true, pixelRatio: 2 });
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        const h = ($("handle").value || $("displayName").value || "anon").replace(/[^a-z0-9-_.]/gi, "_");
-        a.download = `spiky-card-${h}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      } catch (err) {
-        alert("Failed to export image. Try again.");
-      }
-    }
-
-    async function webShare() {
-      const node = $("card");
-      const text = $("presetTweet").value || "";
-      try {
-        const dataUrl = await htmlToImage.toPng(node, { cacheBust: true, pixelRatio: 2 });
+        const dataUrl = await htmlToImage.toPng(card, { cacheBust: true, pixelRatio: 2 });
         const blob = await (await fetch(dataUrl)).blob();
-        const file = new File([blob], "spiky-card.png", { type: "image/png" });
-        const payload = { text, files: [file] };
-        if (navigator.canShare && navigator.canShare(payload)) {
-          await navigator.share(payload);
-        } else {
-          await downloadCard();
+        const file = new File([blob], 'spiky-card.png', { type: 'image/png' });
+
+        const payload = { text: PRESET_TWEET, files: [file] };
+        if(navigator.canShare && navigator.canShare(payload)){
+          await navigator.share(payload); // user picks Twitter from the sheet
+          return;
         }
-      } catch (e) {
-        await downloadCard();
+
+        // Fallback: download + open tweet intent with text
+        const a = document.createElement('a');
+        a.href = dataUrl; a.download = 'spiky-card.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`;
+        window.open(intent, '_blank');
+      } catch(e){
+        alert('Sharing failed. We will try opening a tweet for you.');
+        const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`;
+        window.open(intent, '_blank');
       }
     }
 
-    function tweetIntent() {
-      const text = encodeURIComponent($("presetTweet").value || "");
-      const intent = `https://twitter.com/intent/tweet?text=${text}`;
-      window.open(intent, "_blank");
-    }
-
-    // Wire up
-    $("btnFetch").addEventListener("click", fetchAvatar);
-    $("btnGenerate").addEventListener("click", generateCard);
-    $("btnDownload").addEventListener("click", downloadCard);
-    $("btnShare").addEventListener("click", webShare);
-    $("btnTweet").addEventListener("click", tweetIntent);
-
-    $("avatarUrl").addEventListener("change", (e) => setAvatar(e.target.value));
-    $("displayName").addEventListener("input", updateBasics);
-    $("handle").addEventListener("input", updateBasics);
-
-    document.addEventListener("DOMContentLoaded", () => {
-      updateBasics();
-      $("year").textContent = new Date().getFullYear();
-      // Start with a variant so preview looks nice
-      applyVariant(pick(VARIANTS));
-    });
+    $("connectBtn").addEventListener('click', connectAndGenerate);
+    $("shareBtn").addEventListener('click', shareToTwitter);
   </script>
 </body>
 </html>
-  
