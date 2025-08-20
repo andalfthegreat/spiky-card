@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spiky Card Generator</title>
-  <meta name="description" content="Minimal Spiky card generator: connect Twitter, auto-generate a card with your PFP + a random trait, share to Twitter." />
+  <meta name="description" content="Minimal Spiky card generator: Twitter PFP + random trait, share to Twitter." />
   <link rel="icon" href="data:," />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -19,7 +19,7 @@
       <p class="mt-2 text-sm opacity-80">Minimal • Mobile-first • Purple</p>
     </header>
 
-    <!-- STEP 1: name + handle + connect -->
+    <!-- STEP 1 -->
     <section id="step1" class="space-y-4">
       <div>
         <label class="text-xs uppercase tracking-wide opacity-70">Name</label>
@@ -33,15 +33,14 @@
                class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 outline-none focus:ring-2 focus:ring-purple-500" />
       </div>
 
-      <button id="connectBtn"
+      <button id="generateBtn"
               class="w-full rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-3 font-medium hover:opacity-90">
-        Connect & Generate
+        Generate
       </button>
       <p id="errorBox" class="text-[11px] text-red-300"></p>
-      <p class="text-[11px] opacity-60 text-center">We just fetch your public avatar via handle. No real login.</p>
     </section>
 
-    <!-- STEP 2: generated card + share -->
+    <!-- STEP 2 -->
     <section id="step2" class="hidden">
       <div id="card"
            class="relative mt-6 rounded-[24px] p-5 bg-gradient-to-br from-purple-700 via-purple-800 to-fuchsia-700 border border-white/10 shadow-2xl overflow-hidden inner-border"
@@ -52,7 +51,10 @@
         </div>
 
         <div class="relative flex items-center gap-4">
-          <div id="pfpBox" class="w-16 h-16 rounded-2xl bg-black/30 overflow-hidden border border-white/20"></div>
+          <div class="w-16 h-16 rounded-2xl bg-black/30 overflow-hidden border border-white/20">
+            <img id="avatarImg" alt="avatar" class="w-full h-full object-cover"
+                 crossorigin="anonymous" referrerpolicy="no-referrer" />
+          </div>
           <div class="min-w-0">
             <div id="outName" class="text-lg font-semibold leading-tight truncate">Anon Spiky</div>
           </div>
@@ -83,7 +85,6 @@
   <script>
     const $ = (id) => document.getElementById(id);
 
-    // Traits (your list)
     const TRAITS = [
       { name: "Pixel Hater", description: "Refuses to admit pixel art is the highest artform, secretly collects anyway." },
       { name: "One-Pixel Maxi", description: "Believes all good art comes from a single square." },
@@ -95,53 +96,22 @@
       { name: "Utility Guy", description: "Keeps asking “but what’s the utility?”" },
       { name: "Monad Maxi", description: "Monad is religion. Preacher of finality." },
     ];
-
     const PRESET_TWEET = "I just generated my Spiky Card. Let’s build on Monad.";
-
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    async function getUnavatar(handle) {
+    // Build an avatar URL without using fetch() — avoids CORS issues entirely.
+    function buildAvatarURL(handle) {
       const user = handle.replace(/^@/, "").trim();
-      const tryJson = async (provider) => {
-        const url = `https://unavatar.io/${provider ? provider + "/" : ""}${encodeURIComponent(user)}.json`;
-        const r = await fetch(url, { mode: "cors" });
-        if (!r.ok) throw new Error("json fail");
-        return r.json();
-      };
-      const tryImg = async (provider) => {
-        const url = `https://unavatar.io/${provider ? provider + "/" : ""}${encodeURIComponent(user)}`;
-        const r = await fetch(url, { mode: "cors" });
-        if (!r.ok) throw new Error("img fail");
-        return url;
-      };
-
-      // Try JSON first (for name), then image. Try providers: twitter → x → bare.
-      const providers = ["twitter", "x", ""];
-      for (const p of providers) {
-        try {
-          const j = await tryJson(p);
-          return { img: j.url || await tryImg(p), name: j.name || "" };
-        } catch (e) {
-          try {
-            const img = await tryImg(p);
-            return { img, name: "" };
-          } catch {}
-        }
-      }
-      throw new Error("Could not fetch avatar.");
+      // Primary attempt (twitter path). If that 404s, onerror handler will swap to fallback.
+      return `https://unavatar.io/twitter/${encodeURIComponent(user)}?cb=${Date.now()}`;
+    }
+    function fallbackAvatarURL(handle) {
+      const user = handle.replace(/^@/, "").trim();
+      // Bare path as fallback
+      return `https://unavatar.io/${encodeURIComponent(user)}?cb=${Date.now()}`;
     }
 
-    async function preload(url) {
-      await new Promise((res, rej) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => res();
-        img.onerror = () => rej(new Error("Avatar failed to load"));
-        img.src = url + (url.includes("?") ? "&" : "?") + "cb=" + Date.now();
-      });
-    }
-
-    async function connectAndGenerate() {
+    function generate() {
       const name = $("nameInput").value.trim() || "Anon Spiky";
       const handle = $("handleInput").value.trim();
       const errorBox = $("errorBox");
@@ -152,31 +122,23 @@
         return;
       }
 
-      try {
-        const { img, name: nameHint } = await getUnavatar(handle);
-        await preload(img);
+      // Set name
+      $("outName").textContent = name;
 
-        // Render card
-        $("outName").textContent = name || nameHint || handle;
-        const pfpBox = $("pfpBox");
-        pfpBox.innerHTML = "";
-        const el = document.createElement("img");
-        el.src = img;
-        el.alt = "avatar";
-        el.crossOrigin = "anonymous";
-        el.className = "w-full h-full object-cover";
-        pfpBox.appendChild(el);
+      // Set avatar with onerror fallback (no fetch)
+      const img = $("avatarImg");
+      img.onload = null; // clean previous
+      img.onerror = () => { img.onerror = null; img.src = fallbackAvatarURL(handle); };
+      img.src = buildAvatarURL(handle);
 
-        const t = pick(TRAITS);
-        $("traitName").textContent = t.name;
-        $("traitDesc").textContent = t.description;
+      // Random trait
+      const t = pick(TRAITS);
+      $("traitName").textContent = t.name;
+      $("traitDesc").textContent = t.description;
 
-        // Show step 2
-        $("step1").classList.add("hidden");
-        $("step2").classList.remove("hidden");
-      } catch (e) {
-        errorBox.textContent = "Couldn’t fetch avatar. Double-check the handle or try again.";
-      }
+      // Show step 2
+      $("step1").classList.add("hidden");
+      $("step2").classList.remove("hidden");
     }
 
     async function shareToTwitter() {
@@ -188,11 +150,10 @@
 
         const payload = { text: PRESET_TWEET, files: [file] };
         if (navigator.canShare && navigator.canShare(payload)) {
-          await navigator.share(payload); // choose Twitter in share sheet
+          await navigator.share(payload); // choose Twitter
           return;
         }
-
-        // Fallback: download + open tweet intent with text
+        // Fallback: download + open tweet intent
         const a = document.createElement("a");
         a.href = dataUrl; a.download = "spiky-card.png";
         document.body.appendChild(a); a.click(); a.remove();
@@ -204,7 +165,7 @@
       }
     }
 
-    $("connectBtn").addEventListener("click", connectAndGenerate);
+    $("generateBtn").addEventListener("click", generate);
     $("shareBtn").addEventListener("click", shareToTwitter);
   </script>
 </body>
