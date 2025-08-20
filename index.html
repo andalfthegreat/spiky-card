@@ -4,26 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spiky Card Generator</title>
-  <meta name="description" content="Minimal Spiky card generator: X (Twitter) PFP + random trait, share to X." />
+  <meta name="description" content="Minimal Spiky card generator: X PFP + random trait, share to X." />
   <link rel="icon" href="data:," />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html, body { height: 100%; }
-    .inner-border { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.08), inset 0 0 40px rgba(255,255,255,0.06); }
+    .card-glow { filter: drop-shadow(0 6px 28px rgba(168,85,247,.45)) drop-shadow(0 2px 8px rgba(0,0,0,.25)); }
+    .inner-border { box-shadow: inset 0 0 0 1px rgba(0,0,0,.04), inset 0 0 24px rgba(0,0,0,.03); }
+    .subtle-gradient { background: linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(245,245,255,.96) 100%); }
   </style>
 </head>
 <body class="min-h-screen w-full bg-gradient-to-b from-purple-900 via-purple-950 to-black text-white">
   <main class="max-w-md mx-auto px-5 py-10">
-    <header class="text-center mb-8">
+    <header class="text-center mb-4">
       <h1 class="text-2xl font-semibold tracking-tight">Spiky Card Generator</h1>
-      <p class="mt-2 text-sm opacity-80">Minimal • Mobile-first • Purple</p>
+      <!-- removed subtitle -->
     </header>
 
     <!-- STEP 1 -->
     <section id="step1" class="space-y-4">
       <div>
         <label class="text-xs uppercase tracking-wide opacity-70">Name</label>
-        <input id="nameInput" type="text" placeholder="e.g., Andalf"
+        <input id="nameInput" type="text" placeholder="e.g., Mondalf"
                class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 outline-none focus:ring-2 focus:ring-purple-500" />
       </div>
 
@@ -42,32 +44,35 @@
 
     <!-- STEP 2 -->
     <section id="step2" class="hidden">
-      <div id="card"
-           class="relative mt-6 rounded-[24px] p-5 bg-gradient-to-br from-purple-700 via-purple-800 to-fuchsia-700 border border-white/10 shadow-2xl overflow-hidden inner-border"
-           style="aspect-ratio: 1.91/1;">
-        <div class="absolute inset-0 pointer-events-none">
-          <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/10 blur-3xl"></div>
-          <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/30 to-transparent"></div>
-        </div>
+      <!-- purple aura backdrop -->
+      <div class="relative mt-6">
+        <div class="absolute -inset-4 rounded-[28px] bg-gradient-to-br from-fuchsia-500/25 via-purple-500/25 to-fuchsia-500/10 blur-2xl"></div>
 
-        <div class="relative flex items-center gap-4">
-          <div class="w-16 h-16 rounded-2xl bg-black/30 overflow-hidden border border-white/20">
-            <img id="avatarImg" alt="avatar" class="w-full h-full object-cover"
-                 crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <!-- the card -->
+        <div id="card"
+             class="relative rounded-[24px] p-5 subtle-gradient text-black inner-border card-glow">
+          <!-- top row -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-14 h-14 rounded-xl overflow-hidden border border-black/10 bg-gray-100">
+                <img id="avatarImg" alt="avatar" class="w-full h-full object-cover"
+                     crossorigin="anonymous" referrerpolicy="no-referrer" />
+              </div>
+              <div class="min-w-0">
+                <div id="outName" class="text-lg font-semibold leading-tight truncate">Anon Spiky</div>
+              </div>
+            </div>
+            <!-- tiny corner badge -->
+            <div class="shrink-0 w-8 h-8 grid place-items-center rounded-full bg-gradient-to-br from-purple-600 to-fuchsia-600 text-white text-xs font-semibold">
+              ★
+            </div>
           </div>
-          <div class="min-w-0">
-            <div id="outName" class="text-lg font-semibold leading-tight truncate">Anon Spiky</div>
+
+          <!-- trait block -->
+          <div class="mt-4 pr-1">
+            <div id="traitName" class="text-xl font-semibold leading-snug">Trait</div>
+            <div id="traitDesc" class="text-sm opacity-80 mt-1">Description</div>
           </div>
-        </div>
-
-        <div class="mt-4 pr-2">
-          <div id="traitName" class="text-xl font-semibold leading-snug">Trait</div>
-          <div id="traitDesc" class="text-sm opacity-90 mt-1">Description</div>
-        </div>
-
-        <div class="absolute bottom-3 left-5 right-5 flex items-center justify-between text-[11px] opacity-75">
-          <span>spiky.cards</span>
-          <span>monad vibes</span>
         </div>
       </div>
 
@@ -102,7 +107,7 @@
     const PRESET_TWEET = "I just generated my Spiky Card. Let’s build on Monad.";
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    // Avatar URL builders (no fetch; rely on <img> + onerror chain)
+    /* Avatar fallbacks (no fetch, just <img> src chaining) */
     function buildAvatarURL(handle, provider) {
       const user = handle.replace(/^@/, "").trim();
       const base = provider
@@ -164,18 +169,16 @@
           }
         } catch {}
 
-        // 2) Try to open the X app with text (cannot attach image via deep link)
+        // 2) Try to open X app with text (deep links)
         const deepLinks = [
           `x://post?text=${encodeURIComponent(PRESET_TWEET)}`,
           `twitter://post?message=${encodeURIComponent(PRESET_TWEET)}`,
         ];
-        let triedApp = false;
+        let tried = false;
         for (const url of deepLinks) {
+          tried = true;
           try {
-            triedApp = true;
-            // Try direct navigation (works on many mobiles); fallback to open()
             window.location.href = url;
-            // give the OS ~1s to hand off to the app; then also open web intent as backup
             setTimeout(() => {
               window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`, "_blank");
             }, 1200);
@@ -183,12 +186,11 @@
           } catch {}
         }
 
-        // 3) Web fallback (may lose image, user can attach manually)
-        if (!triedApp) {
+        // 3) Web fallback
+        if (!tried) {
           window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`, "_blank");
-          return;
         }
-      } catch (e) {
+      } catch {
         shareError.textContent = "Couldn’t generate the image. Try again.";
       }
     }
