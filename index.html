@@ -4,65 +4,90 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spiky Card Generator</title>
+  <meta name="description" content="Minimal Spiky card generator: X (Twitter) PFP + random trait, share to X." />
+  <link rel="icon" href="data:," />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background: linear-gradient(to bottom, #4c1d95, #000); }
-    .card { aspect-ratio: 1.91/1; }
+    html, body { height: 100%; }
+    .inner-border { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.08), inset 0 0 40px rgba(255,255,255,0.06); }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center text-white px-4">
-  <main class="w-full max-w-md">
-    <!-- Step 1 -->
+<body class="min-h-screen w-full bg-gradient-to-b from-purple-900 via-purple-950 to-black text-white">
+  <main class="max-w-md mx-auto px-5 py-10">
+    <header class="text-center mb-8">
+      <h1 class="text-2xl font-semibold tracking-tight">Spiky Card Generator</h1>
+      <p class="mt-2 text-sm opacity-80">Minimal • Mobile-first • Purple</p>
+    </header>
+
+    <!-- STEP 1 -->
     <section id="step1" class="space-y-4">
-      <h1 class="text-2xl font-bold text-center">Spiky Card Generator</h1>
       <div>
-        <label class="block text-sm mb-1">Name</label>
-        <input id="nameInput" type="text" placeholder="e.g. Mondalf"
-               class="w-full rounded-lg px-3 py-2 bg-white/10 border border-white/20 outline-none" />
+        <label class="text-xs uppercase tracking-wide opacity-70">Name</label>
+        <input id="nameInput" type="text" placeholder="e.g., Andalf"
+               class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 outline-none focus:ring-2 focus:ring-purple-500" />
       </div>
+
       <div>
-        <label class="block text-sm mb-1">X handle</label>
+        <label class="text-xs uppercase tracking-wide opacity-70">X handle</label>
         <input id="handleInput" type="text" placeholder="@yourhandle"
-               class="w-full rounded-lg px-3 py-2 bg-white/10 border border-white/20 outline-none" />
+               class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 outline-none focus:ring-2 focus:ring-purple-500" />
       </div>
+
       <button id="generateBtn"
-              class="w-full rounded-lg bg-gradient-to-r from-purple-600 to-fuchsia-600 py-3 font-medium">
+              class="w-full rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-3 font-medium hover:opacity-90">
         Connect X & Generate
       </button>
-      <p id="errorBox" class="text-sm text-red-400"></p>
+      <p id="errorBox" class="text-[12px] text-red-300 min-h-[1.25rem]"></p>
     </section>
 
-    <!-- Step 2 -->
+    <!-- STEP 2 -->
     <section id="step2" class="hidden">
       <div id="card"
-           class="card relative mt-6 rounded-2xl p-5 bg-gradient-to-br from-purple-700 via-purple-800 to-fuchsia-700 border border-white/10 shadow-lg overflow-hidden">
-        <div class="flex items-center gap-4">
-          <div class="w-16 h-16 rounded-xl bg-black/30 overflow-hidden border border-white/20">
+           class="relative mt-6 rounded-[24px] p-5 bg-gradient-to-br from-purple-700 via-purple-800 to-fuchsia-700 border border-white/10 shadow-2xl overflow-hidden inner-border"
+           style="aspect-ratio: 1.91/1;">
+        <div class="absolute inset-0 pointer-events-none">
+          <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/10 blur-3xl"></div>
+          <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/30 to-transparent"></div>
+        </div>
+
+        <div class="relative flex items-center gap-4">
+          <div class="w-16 h-16 rounded-2xl bg-black/30 overflow-hidden border border-white/20">
             <img id="avatarImg" alt="avatar" class="w-full h-full object-cover"
                  crossorigin="anonymous" referrerpolicy="no-referrer" />
           </div>
           <div class="min-w-0">
-            <div id="outName" class="text-lg font-semibold truncate">Anon Spiky</div>
+            <div id="outName" class="text-lg font-semibold leading-tight truncate">Anon Spiky</div>
           </div>
         </div>
-        <div class="mt-4">
-          <div id="traitName" class="text-xl font-semibold">Trait</div>
+
+        <div class="mt-4 pr-2">
+          <div id="traitName" class="text-xl font-semibold leading-snug">Trait</div>
           <div id="traitDesc" class="text-sm opacity-90 mt-1">Description</div>
+        </div>
+
+        <div class="absolute bottom-3 left-5 right-5 flex items-center justify-between text-[11px] opacity-75">
+          <span>spiky.cards</span>
+          <span>monad vibes</span>
         </div>
       </div>
 
       <button id="shareBtn"
-              class="mt-5 w-full rounded-lg bg-white text-black font-medium py-3">
+              class="mt-5 w-full rounded-xl bg-white text-black font-medium px-4 py-3 hover:opacity-90">
         Share card to X
       </button>
-      <p id="shareError" class="text-sm text-red-400 mt-2 text-center"></p>
+      <p class="mt-2 text-[11px] opacity-60 text-center">
+        If Share can’t attach the image, we’ll try the X app. If not installed, we open X on the web.
+      </p>
+      <p id="shareError" class="text-[12px] text-red-300 min-h-[1.25rem] text-center"></p>
     </section>
   </main>
 
+  <!-- html-to-image -->
   <script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
 
+    // Traits
     const TRAITS = [
       { name: "Pixel Hater", description: "Refuses to admit pixel art is the highest artform, secretly collects anyway." },
       { name: "One-Pixel Maxi", description: "Believes all good art comes from a single square." },
@@ -77,7 +102,7 @@
     const PRESET_TWEET = "I just generated my Spiky Card. Let’s build on Monad.";
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    // Old working avatar fetch
+    // Avatar URL builders (no fetch; rely on <img> + onerror chain)
     function buildAvatarURL(handle, provider) {
       const user = handle.replace(/^@/, "").trim();
       const base = provider
@@ -92,10 +117,10 @@
     function setAvatarWithFallbacks(handle, name) {
       const img = $("avatarImg");
       const order = [
-        buildAvatarURL(handle, "x"),
-        buildAvatarURL(handle, "twitter"),
-        buildAvatarURL(handle, ""),
-        dicebearFallback(name || handle || "anon"),
+        buildAvatarURL(handle, "x"),        // X first
+        buildAvatarURL(handle, "twitter"),  // then twitter
+        buildAvatarURL(handle, ""),         // bare
+        dicebearFallback(name || handle || "anon"), // guaranteed
       ];
       let i = 0;
       img.onerror = () => { i++; if (i < order.length) img.src = order[i]; };
@@ -128,31 +153,42 @@
       try {
         const dataUrl = await htmlToImage.toPng(card, { cacheBust: true, pixelRatio: 2 });
 
+        // 1) Prefer system share (image + text)
         try {
           const blob = await (await fetch(dataUrl)).blob();
           const file = new File([blob], "spiky-card.png", { type: "image/png" });
           const payload = { text: PRESET_TWEET, files: [file] };
           if (navigator.canShare && navigator.canShare(payload)) {
-            await navigator.share(payload);
+            await navigator.share(payload); // choose X app in the sheet
             return;
           }
         } catch {}
 
+        // 2) Try to open the X app with text (cannot attach image via deep link)
         const deepLinks = [
           `x://post?text=${encodeURIComponent(PRESET_TWEET)}`,
           `twitter://post?message=${encodeURIComponent(PRESET_TWEET)}`,
         ];
+        let triedApp = false;
         for (const url of deepLinks) {
           try {
+            triedApp = true;
+            // Try direct navigation (works on many mobiles); fallback to open()
             window.location.href = url;
+            // give the OS ~1s to hand off to the app; then also open web intent as backup
             setTimeout(() => {
               window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`, "_blank");
             }, 1200);
             return;
           } catch {}
         }
-        window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`, "_blank");
-      } catch {
+
+        // 3) Web fallback (may lose image, user can attach manually)
+        if (!triedApp) {
+          window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`, "_blank");
+          return;
+        }
+      } catch (e) {
         shareError.textContent = "Couldn’t generate the image. Try again.";
       }
     }
