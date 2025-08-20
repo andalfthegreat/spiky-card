@@ -52,7 +52,7 @@
         <div class="relative flex items-center gap-4">
           <div class="w-16 h-16 rounded-2xl bg-black/30 overflow-hidden border border-white/20">
             <img id="avatarImg" alt="avatar" class="w-full h-full object-cover"
-                 crossorigin="anonymous" referrerpolicy="no-referrer" />
+                 crossorigin="anonymous" />
           </div>
           <div class="min-w-0">
             <div id="outName" class="text-lg font-semibold leading-tight truncate">Anon Spiky</div>
@@ -96,41 +96,47 @@
     const PRESET_TWEET = "I just generated my Spiky Card. Let’s build on Monad.";
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    /* -------- Avatar loader (same logic + proxy fallback) -------- */
-    function buildAvatarURL(handle, provider) {
+    /* ---------- Avatar resolver (Unavatar JSON → direct URL) ---------- */
+    async function unavatarJson(provider, user) {
+      const pfx = provider ? provider + "/" : "";
+      const url = `https://unavatar.io/${pfx}${encodeURIComponent(user)}.json`;
+      const r = await fetch(url, { mode: "cors", cache: "no-store" });
+      if (!r.ok) throw new Error("json fail");
+      const data = await r.json();
+      // .url is the direct image; append cache-buster to avoid stale CDN
+      if (data?.url) return data.url + (data.url.includes("?") ? "&" : "?") + "cb=" + Date.now();
+      throw new Error("no url");
+    }
+
+    async function resolveAvatar(handle) {
       const user = handle.replace(/^@/, "").trim();
-      const base = provider
-        ? `https://unavatar.io/${provider}/${encodeURIComponent(user)}`
-        : `https://unavatar.io/${encodeURIComponent(user)}`;
-      return `${base}?cb=${Date.now()}`;
+      const providers = ["x", "twitter", ""]; // try X first
+      for (const p of providers) {
+        try {
+          const url = await unavatarJson(p, user);
+          await preload(url);
+          return url;
+        } catch {}
+      }
+      return null;
     }
-    function proxyURL(u) {
-      // Force CORS-friendly proxy (no fetch needed, still <img> src)
-      const noProto = u.replace(/^https?:\/\//, "");
-      return `https://images.weserv.nl/?url=${encodeURIComponent(noProto)}&output=png`;
+
+    function preload(url) {
+      return new Promise((res, rej) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => res();
+        img.onerror = () => rej(new Error("img load fail"));
+        img.src = url;
+      });
     }
+
     function dicebearFallback(nameOrHandle) {
       const seed = encodeURIComponent((nameOrHandle || "anon").toLowerCase());
       return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundType=gradientLinear&radius=50&chars=2`;
     }
-    function setAvatarWithFallbacks(handle, name) {
-      const img = $("avatarImg");
-      const directX = buildAvatarURL(handle, "x");
-      const directTw = buildAvatarURL(handle, "twitter");
-      const directBare = buildAvatarURL(handle, "");
-      const order = [
-        directX,            proxyURL(directX),
-        directTw,           proxyURL(directTw),
-        directBare,         proxyURL(directBare),
-        dicebearFallback(name || handle || "anon"),
-      ];
-      let i = 0;
-      img.onload = () => { /* success */ };
-      img.onerror = () => { i++; if (i < order.length) img.src = order[i]; };
-      img.src = order[0];
-    }
 
-    function generate() {
+    async function generate() {
       const name = $("nameInput").value.trim() || "Anon Spiky";
       const handle = $("handleInput").value.trim();
       const errorBox = $("errorBox");
@@ -138,7 +144,14 @@
       if (!handle) { errorBox.textContent = "Please enter your X handle."; return; }
 
       $("outName").textContent = name;
-      setAvatarWithFallbacks(handle, name);
+
+      // Resolve avatar (JSON → preload → set). Fallback to initials only if all fail.
+      try {
+        const url = await resolveAvatar(handle);
+        $("avatarImg").src = url || dicebearFallback(name || handle);
+      } catch {
+        $("avatarImg").src = dicebearFallback(name || handle);
+      }
 
       const t = pick(TRAITS);
       $("traitName").textContent = t.name;
