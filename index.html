@@ -16,7 +16,6 @@
   <main class="max-w-md mx-auto px-5 py-10">
     <header class="text-center mb-4">
       <h1 class="text-2xl font-semibold tracking-tight">Spiky Card Generator</h1>
-      <!-- subtitle removed -->
     </header>
 
     <!-- STEP 1 -->
@@ -64,8 +63,6 @@
           <div id="traitName" class="text-xl font-semibold leading-snug">Trait</div>
           <div id="traitDesc" class="text-sm opacity-90 mt-1">Description</div>
         </div>
-
-        <!-- footer labels removed -->
       </div>
 
       <button id="shareBtn"
@@ -99,7 +96,7 @@
     const PRESET_TWEET = "I just generated my Spiky Card. Let’s build on Monad.";
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    /* ---------- SAME FETCHING LOGIC AS BEFORE ---------- */
+    /* -------- Avatar loader (same logic + proxy fallback) -------- */
     function buildAvatarURL(handle, provider) {
       const user = handle.replace(/^@/, "").trim();
       const base = provider
@@ -107,19 +104,28 @@
         : `https://unavatar.io/${encodeURIComponent(user)}`;
       return `${base}?cb=${Date.now()}`;
     }
+    function proxyURL(u) {
+      // Force CORS-friendly proxy (no fetch needed, still <img> src)
+      const noProto = u.replace(/^https?:\/\//, "");
+      return `https://images.weserv.nl/?url=${encodeURIComponent(noProto)}&output=png`;
+    }
     function dicebearFallback(nameOrHandle) {
       const seed = encodeURIComponent((nameOrHandle || "anon").toLowerCase());
       return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundType=gradientLinear&radius=50&chars=2`;
     }
     function setAvatarWithFallbacks(handle, name) {
       const img = $("avatarImg");
+      const directX = buildAvatarURL(handle, "x");
+      const directTw = buildAvatarURL(handle, "twitter");
+      const directBare = buildAvatarURL(handle, "");
       const order = [
-        buildAvatarURL(handle, "x"),        // X first
-        buildAvatarURL(handle, "twitter"),  // then twitter
-        buildAvatarURL(handle, ""),         // bare
-        dicebearFallback(name || handle || "anon"), // guaranteed
+        directX,            proxyURL(directX),
+        directTw,           proxyURL(directTw),
+        directBare,         proxyURL(directBare),
+        dicebearFallback(name || handle || "anon"),
       ];
       let i = 0;
+      img.onload = () => { /* success */ };
       img.onerror = () => { i++; if (i < order.length) img.src = order[i]; };
       img.src = order[0];
     }
@@ -150,7 +156,7 @@
       try {
         const dataUrl = await htmlToImage.toPng(card, { cacheBust: true, pixelRatio: 2 });
 
-        // 1) Prefer system share (image + text)
+        // 1) System share (image + text)
         try {
           const blob = await (await fetch(dataUrl)).blob();
           const file = new File([blob], "spiky-card.png", { type: "image/png" });
