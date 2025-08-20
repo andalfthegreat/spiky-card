@@ -4,84 +4,65 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spiky Card Generator</title>
-  <meta name="description" content="Minimal Spiky card generator: X (Twitter) PFP + random trait, share to X." />
-  <link rel="icon" href="data:," />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    html, body { height: 100%; }
-    .inner-border { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.08), inset 0 0 40px rgba(255,255,255,0.06); }
+    body { background: linear-gradient(to bottom, #4c1d95, #000); }
+    .card { aspect-ratio: 1.91/1; }
   </style>
 </head>
-<body class="min-h-screen w-full bg-gradient-to-b from-purple-900 via-purple-950 to-black text-white">
-  <main class="max-w-md mx-auto px-5 py-10">
-    <header class="text-center mb-4">
-      <h1 class="text-2xl font-semibold tracking-tight">Spiky Card Generator</h1>
-    </header>
-
-    <!-- STEP 1 -->
+<body class="min-h-screen flex flex-col items-center justify-center text-white px-4">
+  <main class="w-full max-w-md">
+    <!-- Step 1 -->
     <section id="step1" class="space-y-4">
+      <h1 class="text-2xl font-bold text-center">Spiky Card Generator</h1>
       <div>
-        <label class="text-xs uppercase tracking-wide opacity-70">Name</label>
-        <input id="nameInput" type="text" placeholder="e.g., Mondalf"
-               class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 outline-none focus:ring-2 focus:ring-purple-500" />
+        <label class="block text-sm mb-1">Name</label>
+        <input id="nameInput" type="text" placeholder="e.g. Mondalf"
+               class="w-full rounded-lg px-3 py-2 bg-white/10 border border-white/20 outline-none" />
       </div>
-
       <div>
-        <label class="text-xs uppercase tracking-wide opacity-70">X handle</label>
+        <label class="block text-sm mb-1">X handle</label>
         <input id="handleInput" type="text" placeholder="@yourhandle"
-               class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-3 outline-none focus:ring-2 focus:ring-purple-500" />
+               class="w-full rounded-lg px-3 py-2 bg-white/10 border border-white/20 outline-none" />
       </div>
-
       <button id="generateBtn"
-              class="w-full rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-3 font-medium hover:opacity-90">
+              class="w-full rounded-lg bg-gradient-to-r from-purple-600 to-fuchsia-600 py-3 font-medium">
         Connect X & Generate
       </button>
-      <p id="errorBox" class="text-[12px] text-red-300 min-h-[1.25rem]"></p>
+      <p id="errorBox" class="text-sm text-red-400"></p>
     </section>
 
-    <!-- STEP 2 -->
+    <!-- Step 2 -->
     <section id="step2" class="hidden">
       <div id="card"
-           class="relative mt-6 rounded-[24px] p-5 bg-gradient-to-br from-purple-700 via-purple-800 to-fuchsia-700 border border-white/10 shadow-2xl overflow-hidden inner-border"
-           style="aspect-ratio: 1.91/1;">
-        <div class="absolute inset-0 pointer-events-none">
-          <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/10 blur-3xl"></div>
-          <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/30 to-transparent"></div>
-        </div>
-
-        <div class="relative flex items-center gap-4">
-          <div class="w-16 h-16 rounded-2xl bg-black/30 overflow-hidden border border-white/20">
+           class="card relative mt-6 rounded-2xl p-5 bg-gradient-to-br from-purple-700 via-purple-800 to-fuchsia-700 border border-white/10 shadow-lg overflow-hidden">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 rounded-xl bg-black/30 overflow-hidden border border-white/20">
             <img id="avatarImg" alt="avatar" class="w-full h-full object-cover"
-                 crossorigin="anonymous" />
+                 crossorigin="anonymous" referrerpolicy="no-referrer" />
           </div>
           <div class="min-w-0">
-            <div id="outName" class="text-lg font-semibold leading-tight truncate">Anon Spiky</div>
+            <div id="outName" class="text-lg font-semibold truncate">Anon Spiky</div>
           </div>
         </div>
-
-        <div class="mt-4 pr-2">
-          <div id="traitName" class="text-xl font-semibold leading-snug">Trait</div>
+        <div class="mt-4">
+          <div id="traitName" class="text-xl font-semibold">Trait</div>
           <div id="traitDesc" class="text-sm opacity-90 mt-1">Description</div>
         </div>
       </div>
 
       <button id="shareBtn"
-              class="mt-5 w-full rounded-xl bg-white text-black font-medium px-4 py-3 hover:opacity-90">
+              class="mt-5 w-full rounded-lg bg-white text-black font-medium py-3">
         Share card to X
       </button>
-      <p class="mt-2 text-[11px] opacity-60 text-center">
-        If Share can’t attach the image, we’ll try the X app. If not installed, we open X on the web.
-      </p>
-      <p id="shareError" class="text-[12px] text-red-300 min-h-[1.25rem] text-center"></p>
+      <p id="shareError" class="text-sm text-red-400 mt-2 text-center"></p>
     </section>
   </main>
 
-  <!-- html-to-image -->
   <script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
 
-    // Traits
     const TRAITS = [
       { name: "Pixel Hater", description: "Refuses to admit pixel art is the highest artform, secretly collects anyway." },
       { name: "One-Pixel Maxi", description: "Believes all good art comes from a single square." },
@@ -96,47 +77,32 @@
     const PRESET_TWEET = "I just generated my Spiky Card. Let’s build on Monad.";
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    /* ---------- Avatar resolver (Unavatar JSON → direct URL) ---------- */
-    async function unavatarJson(provider, user) {
-      const pfx = provider ? provider + "/" : "";
-      const url = `https://unavatar.io/${pfx}${encodeURIComponent(user)}.json`;
-      const r = await fetch(url, { mode: "cors", cache: "no-store" });
-      if (!r.ok) throw new Error("json fail");
-      const data = await r.json();
-      // .url is the direct image; append cache-buster to avoid stale CDN
-      if (data?.url) return data.url + (data.url.includes("?") ? "&" : "?") + "cb=" + Date.now();
-      throw new Error("no url");
-    }
-
-    async function resolveAvatar(handle) {
+    // Old working avatar fetch
+    function buildAvatarURL(handle, provider) {
       const user = handle.replace(/^@/, "").trim();
-      const providers = ["x", "twitter", ""]; // try X first
-      for (const p of providers) {
-        try {
-          const url = await unavatarJson(p, user);
-          await preload(url);
-          return url;
-        } catch {}
-      }
-      return null;
+      const base = provider
+        ? `https://unavatar.io/${provider}/${encodeURIComponent(user)}`
+        : `https://unavatar.io/${encodeURIComponent(user)}`;
+      return `${base}?cb=${Date.now()}`;
     }
-
-    function preload(url) {
-      return new Promise((res, rej) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => res();
-        img.onerror = () => rej(new Error("img load fail"));
-        img.src = url;
-      });
-    }
-
     function dicebearFallback(nameOrHandle) {
       const seed = encodeURIComponent((nameOrHandle || "anon").toLowerCase());
       return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundType=gradientLinear&radius=50&chars=2`;
     }
+    function setAvatarWithFallbacks(handle, name) {
+      const img = $("avatarImg");
+      const order = [
+        buildAvatarURL(handle, "x"),
+        buildAvatarURL(handle, "twitter"),
+        buildAvatarURL(handle, ""),
+        dicebearFallback(name || handle || "anon"),
+      ];
+      let i = 0;
+      img.onerror = () => { i++; if (i < order.length) img.src = order[i]; };
+      img.src = order[0];
+    }
 
-    async function generate() {
+    function generate() {
       const name = $("nameInput").value.trim() || "Anon Spiky";
       const handle = $("handleInput").value.trim();
       const errorBox = $("errorBox");
@@ -144,14 +110,7 @@
       if (!handle) { errorBox.textContent = "Please enter your X handle."; return; }
 
       $("outName").textContent = name;
-
-      // Resolve avatar (JSON → preload → set). Fallback to initials only if all fail.
-      try {
-        const url = await resolveAvatar(handle);
-        $("avatarImg").src = url || dicebearFallback(name || handle);
-      } catch {
-        $("avatarImg").src = dicebearFallback(name || handle);
-      }
+      setAvatarWithFallbacks(handle, name);
 
       const t = pick(TRAITS);
       $("traitName").textContent = t.name;
@@ -169,7 +128,6 @@
       try {
         const dataUrl = await htmlToImage.toPng(card, { cacheBust: true, pixelRatio: 2 });
 
-        // 1) System share (image + text)
         try {
           const blob = await (await fetch(dataUrl)).blob();
           const file = new File([blob], "spiky-card.png", { type: "image/png" });
@@ -180,14 +138,11 @@
           }
         } catch {}
 
-        // 2) X app deep links (text only)
         const deepLinks = [
           `x://post?text=${encodeURIComponent(PRESET_TWEET)}`,
           `twitter://post?message=${encodeURIComponent(PRESET_TWEET)}`,
         ];
-        let tried = false;
         for (const url of deepLinks) {
-          tried = true;
           try {
             window.location.href = url;
             setTimeout(() => {
@@ -196,9 +151,7 @@
             return;
           } catch {}
         }
-        if (!tried) {
-          window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`, "_blank");
-        }
+        window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(PRESET_TWEET)}`, "_blank");
       } catch {
         shareError.textContent = "Couldn’t generate the image. Try again.";
       }
